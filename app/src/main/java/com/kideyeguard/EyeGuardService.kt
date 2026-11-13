@@ -1,5 +1,6 @@
 package com.kideyeguard
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -12,6 +13,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -43,6 +45,7 @@ class EyeGuardService : Service() {
         }
         createNotificationChannel()
         startForeground(NOTIF_ID, buildNotification("守护运行中"))
+        GuardKeepAliveJobService.schedule(this)
         handler.postDelayed(tickRunnable, 1000L)
     }
 
@@ -152,6 +155,21 @@ class EyeGuardService : Service() {
             .setContentIntent(openIntent)
             .setOngoing(true)
             .build()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        if (prefs.guardEnabled) {
+            val restartIntent = Intent(applicationContext, EyeGuardService::class.java)
+            val pi = PendingIntent.getService(
+                applicationContext,
+                1002,
+                restartIntent,
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val am = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 1500L, pi)
+        }
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {

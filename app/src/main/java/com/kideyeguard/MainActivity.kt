@@ -1,7 +1,9 @@
 package com.kideyeguard
 
 import android.Manifest
+import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -42,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var guardBtn: Button
     private lateinit var overlayStatusLbl: TextView
     private lateinit var batteryStatusLbl: TextView
+    private lateinit var adminStatusLbl: TextView
     private lateinit var nextRestValue: TextView
     private lateinit var todayUsedValue: TextView
     private lateinit var restCountValue: TextView
@@ -77,6 +80,7 @@ class MainActivity : AppCompatActivity() {
         prefs = GuardPrefs(this)
         buildUi()
         ensureNotificationPermission()
+        GuardKeepAliveJobService.schedule(this)
         startGuardService()
     }
 
@@ -216,6 +220,23 @@ class MainActivity : AppCompatActivity() {
         batteryRow.addView(batteryStatusLbl, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         batteryRow.addView(makeSmallButton("去设置") { openBatterySettings() })
         permCard.addView(batteryRow)
+
+        val adminRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, 0)
+        }
+        adminStatusLbl = TextView(this).apply { textSize = 13f }
+        adminRow.addView(adminStatusLbl, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        adminRow.addView(makeSmallButton("去开启") { openAdminSettings() })
+        permCard.addView(adminRow)
+
+        permCard.addView(TextView(this).apply {
+            text = "防误杀提示：打开手机「最近任务」下滑本应用加锁(🔒)，再点一键清理就不会被杀掉了。"
+            textSize = 11f
+            setTextColor(Color.parseColor("#64748B"))
+            setPadding(0, dp(8), 0, 0)
+        })
         root.addView(permCard, cardLp())
 
         // 2x2 Stats Grid
@@ -535,6 +556,23 @@ class MainActivity : AppCompatActivity() {
         val batteryOk = pm.isIgnoringBatteryOptimizations(packageName)
         batteryStatusLbl.text = if (batteryOk) "后台保活（忽略电池优化）：已开启" else "后台保活：建议开启防系统杀后台"
         batteryStatusLbl.setTextColor(Color.parseColor(if (batteryOk) "#059669" else "#D97706"))
+
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val adminOk = dpm.isAdminActive(ComponentName(this, GuardAdminReceiver::class.java))
+        adminStatusLbl.text = if (adminOk) "防卸载保护（设备管理器）：已开启" else "防卸载保护：建议开启防孩子卸载"
+        adminStatusLbl.setTextColor(Color.parseColor(if (adminOk) "#059669" else "#D97706"))
+    }
+
+    private fun openAdminSettings() {
+        val comp = ComponentName(this, GuardAdminReceiver::class.java)
+        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
+            putExtra(
+                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                "开启后可防止孩子直接卸载小树苗护眼卫士，并提升后台守护稳定性。"
+            )
+        }
+        startActivity(intent)
     }
 
     private fun openOverlaySettings() {
