@@ -162,13 +162,13 @@ class LockOverlayManager(
         val problems = MathChallenge.generate(prefs.mathDifficulty, prefs.mathCount)
         val inputs = mutableListOf<EditText>()
 
-        val hint = TextView(context).apply {
+        val hintView = TextView(context).apply {
             text = "答对以下 ${problems.size} 道题即可提前解锁："
             setTextColor(Color.parseColor("#E2E8F0"))
             textSize = 14f
             setPadding(0, 0, 0, dp(10))
         }
-        panelBox.addView(hint)
+        panelBox.addView(hintView)
 
         problems.forEach { p ->
             val row = LinearLayout(context).apply {
@@ -224,13 +224,13 @@ class LockOverlayManager(
         panelBox.removeAllViews()
         panelBox.visibility = View.VISIBLE
 
-        val hint = TextView(context).apply {
+        val hintView = TextView(context).apply {
             text = "请输入家长密码以立即结束休息："
             setTextColor(Color.parseColor("#E2E8F0"))
             textSize = 14f
             setPadding(0, 0, 0, dp(10))
         }
-        panelBox.addView(hint)
+        panelBox.addView(hintView)
 
         val pinInput = EditText(context).apply {
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
